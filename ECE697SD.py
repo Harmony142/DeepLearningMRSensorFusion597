@@ -1,9 +1,258 @@
 import numpy as np
 from numpy.linalg import inv, norm
 
-# import data_receiver
-from mathlib import *
-from matplotlib import *
+import data_receiver
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.animation import FuncAnimation
+
+# plt.style.use('fivethirtyeight')
+
+
+def plotSignal(al: list, wl: list, ml: list):
+    f, ax = plt.subplots(ncols=3, nrows=3)
+    plot3(al, ax=ax[:, 0])
+    plot3(wl, ax=ax[:, 1])
+    plot3(ml, ax=ax[:, 2])
+    ax[0, 0].set_ylabel('x')
+    ax[1, 0].set_ylabel('y')
+    ax[2, 0].set_ylabel('z')
+    ax[2, 0].set_xlabel('a')
+    ax[2, 1].set_xlabel(r'$\omega$')
+    ax[2, 2].set_xlabel('m')
+
+
+def plotgAndAcc(g, ab):
+    '''
+    plot tracked gravity and body frame acceleration
+    '''
+
+    fig, ax = plt.subplots(nrows=1, ncols=3)
+    plot3([g, ab],
+          ax=ax,
+          lims=[[None, [-12, 12]]] * 3,
+          labels=[['$g_x$', '$g_y$', '$g_z$'], ['$a^b_x$', '$a^b_y$', '$a^b_z$']],
+          show_legend=True)
+
+
+def plot3(data, ax=None, lims=None, labels=None, show=False, show_legend=False):
+    '''
+    @param data: [ndarray, ...]
+    @param lims: [[[xl, xh], [yl, yh]], ...]
+    @param labels: [[label_string, ...], ...]
+    '''
+
+    show_flag = False
+    if ax is None:
+        show_flag = True
+        f, ax = plt.subplots(ncols=1, nrows=3)
+
+    for axel in range(3):
+        has_label = False
+        for n in range(len(data)):
+            d = data[n]
+            label = labels[n] if labels is not None else None
+
+            if label is not None:
+                ax[axel].plot(d[:, axel], label=label[axel])
+                has_label = True
+            else:
+                ax[axel].plot(d[:, axel])
+
+            lim = lims[axel] if lims is not None else None
+            if lim is not None:
+                if lim[0] is not None:
+                    ax[axel].set_xlim(lim[0][0], lim[0][1])
+                if lim[1] is not None:
+                    ax[axel].set_ylim(lim[1][0], lim[1][1])
+
+        if (has_label is not None) and show_legend:
+            ax[axel].legend()
+        ax[axel].grid(True)
+
+    plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+
+    if show or show_flag:
+        plt.show()
+    return ax
+
+
+def plot3D(data, lim=None, ax=None):
+    '''
+    @param data: [[data, label_string], ...]
+    @param lim: [[xl, xh], [yl, yh], [zl, zh]]
+    '''
+
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+    for item in data:
+        label = item[1]
+        d = item[0]
+        ax.plot(d[:, 0], d[:, 1], d[:, 2], 'o', label=label)
+
+    if lim is not None:
+        if lim[0] is not None:
+            ax.set_xlim(lim[0][0], lim[0][1])
+        if lim[1] is not None:
+            ax.set_ylim(lim[1][0], lim[1][1])
+        if lim[2] is not None:
+            ax.set_zlim(lim[2][0], lim[2][1])
+
+    ax.legend()
+    ax.set_xlabel('X axis')
+    ax.set_ylabel('Y axis')
+    ax.set_zlabel('Z axis')
+    ax.plot([0], [0], [0], 'ro')
+    plt.show()
+
+
+# ----------------------------- #
+# ---- Animated Plots ----
+# ----------------------------- #
+
+
+def plot3DAnimated(data, lim=[[-1, 1], [-1, 1], [-1, 1]], label=None, interval=10, show=True, repeat=False):
+    '''
+    @param data: (n, 3) ndarray
+    @param lim: [[xl, xh], [yl, yh], [zl, zh]]
+    @param show: if it's set to false, you can call this function multiple times to draw multiple lines
+    '''
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    if label is not None:
+        ln, = ax.plot([], [], [], 'o', label=label)
+    else:
+        ln, = ax.plot([], [], [], 'o')
+
+    def init():
+        ax.plot([0], [0], [0], 'ro')
+        ax.set_xlim(lim[0][0], lim[0][1])
+        ax.set_ylim(lim[1][0], lim[1][1])
+        ax.set_zlim(lim[2][0], lim[2][1])
+        if label is not None:
+            ax.legend()
+        return ln,
+
+    def update(frame):
+        ln.set_xdata(data[:frame, 0])
+        ln.set_ydata(data[:frame, 1])
+        ln.set_3d_properties(data[:frame, 2])
+        return ln,
+
+    ani = FuncAnimation(fig,
+                        update,
+                        frames=range(1,
+                                     np.shape(data)[0] + 1),
+                        init_func=init,
+                        blit=True,
+                        interval=interval,
+                        repeat=repeat)
+    if show:
+        plt.show()
+
+
+def normalized(x):
+    try:
+        return x / np.linalg.norm(x)
+    except:
+        return x
+
+
+def I(n):
+    '''
+    unit matrix
+    just making its name prettier than np.eye
+    '''
+    return np.eye(n)
+
+
+def skew(x):
+    '''
+    takes in a 3d column vector
+    returns its Skew-symmetric matrix
+    '''
+
+    x = x.T[0]
+    return np.array([[0, -x[2], x[1]], [x[2], 0, -x[0]], [-x[1], x[0], 0]])
+
+
+def rotate(q):
+    '''
+    rotation transformation matrix
+    nav frame to body frame as q is expected to be q^nb
+    R(q) @ x to rotate x
+    '''
+
+    qv = q[1:4, :]
+    qc = q[0]
+    return (qc**2 - qv.T @ qv) * I(3) - 2 * qc * skew(qv) + 2 * qv @ qv.T
+
+
+def F(q, wt, dt):
+    '''state transfer matrix'''
+
+    w = wt.T[0]
+    Omega = np.array([[0, -w[0], -w[1], -w[2]], [w[0], 0, w[2], -w[1]],
+                      [w[1], -w[2], 0, w[0]], [w[2], w[1], -w[0], 0]])
+
+    return I(4) + 0.5 * dt * Omega
+
+
+def G(q):
+    '''idk what its called '''
+
+    q = q.T[0]
+    return 0.5 * np.array([[-q[1], -q[2], -q[3]], [q[0], -q[3], q[2]],
+                           [q[3], q[0], -q[1]], [-q[2], q[1], q[0]]])
+
+
+def Hhelper(q, vector):
+    # just for convenience
+    x = vector.T[0][0]
+    y = vector.T[0][1]
+    z = vector.T[0][2]
+    q0 = q.T[0][0]
+    q1 = q.T[0][1]
+    q2 = q.T[0][2]
+    q3 = q.T[0][3]
+
+    h = np.array([
+        [q0*x - q3*y + q2*z, q1*x + q2*y + q3*z, -q2*x + q1*y + q0*z, -q3*x - q0*y + q1*z],
+        [q3*x + q0*y - q1*z, q2*x - q1*y - q0*z, q1*x + q2*y + q3*z, q0*x - q3*y + q2*z],
+        [-q2*x + q1*y + q0*z, q3*x + q0*y - q1*z, -q0*x + q3*y - q2*z, q1*x + q2*y + q3*z]
+    ])
+    return 2 * h
+
+
+def H(q, gn, mn):
+    '''
+    Measurement matrix
+    '''
+
+    H1 = Hhelper(q, gn)
+    H2 = Hhelper(q, mn)
+    return np.vstack((-H1, H2))
+
+
+# def filtSignal(data, dt=0.01, wn=10, btype='lowpass', order=1):
+#     '''
+#     filter all data at once
+#     uses butterworth filter of scipy
+#     @param data: [...]
+#     @param dt: sampling time
+#     @param wn: critical frequency
+#     '''
+
+#     res = []
+#     n, s = scipy.signal.butter(order, wn, fs=1 / dt, btype=btype)
+#     for d in data:
+#         d = scipy.signal.filtfilt(n, s, d, axis=0)
+#         res.append(d)
+#     return res
 
 
 class IMUTracker:
@@ -77,7 +326,7 @@ class IMUTracker:
         Also tracks device's orientation.
         
         @param data: (,9) ndarray
-        @param list: initialization values for EKF algorithm: 
+        @param list: initialization values for EKF algorithm:
         (gn, g0, mn, gyro_noise, gyro_bias, acc_noise, mag_noise)
         Return: (acc, orientation)
         '''
@@ -228,12 +477,14 @@ class IMUTracker:
 
         for i in range(sample_number - t_end):
             a_nav[t_end + i] -= an_drift
+        
+        return a_nav
 
-        if filter:
-            filtered_a_nav = filtSignal([a_nav], dt=self.dt, wn=wn, btype='bandpass')[0]
-            return filtered_a_nav
-        else:
-            return a_nav
+        # if filter:
+        #     filtered_a_nav = filtSignal([a_nav], dt=self.dt, wn=wn, btype='bandpass')[0]
+        #     return filtered_a_nav
+        # else:
+        #     return a_nav
 
     def zupt(self, a_nav, threshold):
         '''
@@ -328,7 +579,7 @@ def receive_data(mode='tcp'):
 
 def plot_trajectory():
     tracker = IMUTracker(sampling=100)
-    data = receive_data('file')    # toggle data source between 'tcp' and 'file' here
+    data = receive_data('tcp')    # toggle data source between 'tcp' and 'file' here
 
     print('initializing...')
     init_list = tracker.initialize(data[5:30])
@@ -341,11 +592,11 @@ def plot_trajectory():
 
     # Acceleration correction step
     a_nav_filtered = tracker.removeAccErr(a_nav, filter=False)
-    # plot3([a_nav, a_nav_filtered])
+    plot3([a_nav, a_nav_filtered])
 
     # ZUPT step
     v = tracker.zupt(a_nav_filtered, threshold=0.2)
-    # plot3([v])
+    plot3([v])
 
     # Integration Step
     p = tracker.positionTrack(a_nav_filtered, v)
@@ -363,3 +614,5 @@ def plot_trajectory():
 
 if __name__ == '__main__':
     plot_trajectory()
+    # data = receive_data('tcp')
+    
