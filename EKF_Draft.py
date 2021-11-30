@@ -5,6 +5,11 @@
 # Based off tutorial for EKF implementation using Pyro and Torch libraries by Pyro API
 # Reference: https://pyro.ai/examples/ekf.html
 
+# Tested using ADVIO: An Authentic Dataset for Visual-Intertial Odometry: 
+# Santiago Cortés, Arno Solin, Esa Rahtu, and Juho Kannala (2018). 
+# ADVIO: An authentic dataset for visual-inertial odometry. 
+# In European Conference on Computer Vision (ECCV). Munich, Germany.
+
 # Import required libraries/classes
 
 import csv
@@ -23,7 +28,7 @@ smoke_test = ('CI' in os.environ)
 assert pyro.__version__.startswith('1.7.0')
 steps = 0
 
-with open('p.csv') as file1:
+with open('accelerometer.csv') as file1:
     temp = csv.reader(file1, delimiter=',') 
 
     # Store XYZ of position here
@@ -53,7 +58,7 @@ with open('p.csv') as file1:
     
     steps = r # Used for model construction
     
-with open('r.csv') as file2:
+with open('gyro.csv') as file2:
     temp = csv.reader(file2, delimiter=',') 
     
     # Store XYZ of rotation here
@@ -81,7 +86,7 @@ with open('r.csv') as file2:
     Rz_var = torch.var(Rz)
     Rz_mean = torch.mean(Rz)
     
-with open('m.csv') as file3:
+with open('magnetometer.csv') as file3:
     temp = csv.reader(file3, delimiter=',') 
 
     # Store XYZ of magnetometer here
@@ -137,9 +142,9 @@ def model():
     # Observe Rotation
     pyro.sample('XRotation_{}'.format(i), EKFDistribution(Rx_mean, Rx_var, dynamic_model=None,
     measurement_cov=0, time_steps=steps), obs=Rx)
-    pyro.sample('XRotation_{}'.format(i), EKFDistribution(Ry_mean, Ry_var, dynamic_model=None,
+    pyro.sample('YRotation_{}'.format(i), EKFDistribution(Ry_mean, Ry_var, dynamic_model=None,
     measurement_cov=0, time_steps=steps), obs=Ry)
-    pyro.sample('XRotation_{}'.format(i), EKFDistribution(Rz_mean, Rz_var, dynamic_model=None,
+    pyro.sample('ZRotation_{}'.format(i), EKFDistribution(Rz_mean, Rz_var, dynamic_model=None,
     measurement_cov=0, time_steps=steps), obs=Rz) 
 
     # Observe Magnetometer
@@ -149,7 +154,6 @@ def model():
     measurement_cov=0, time_steps=steps), obs=My)
     pyro.sample('ZMagnetometer_{}'.format(i), EKFDistribution(Mz_mean, Mz_var, dynamic_model=None,
     measurement_cov=0, time_steps=steps), obs=Mz)
-
     
 # 3. Create MAP/MLE estimation guide
 # Will either use MAP or MLE (currently MAP; MLE innacurrate for small data)
