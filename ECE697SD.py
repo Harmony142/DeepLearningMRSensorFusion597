@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.linalg import inv, norm
-
+import csv
 import data_receiver
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -113,7 +113,7 @@ def plot3D(data, lim=None, ax=None):
 # ----------------------------- #
 
 
-def plot3DAnimated(data, lim=[[-1, 1], [-1, 1], [-1, 1]], label=None, interval=10, show=True, repeat=False):
+def plot3DAnimated(data, lim=[[-1, 1], [-1, 1], [-1, 1]], label=None, interval=10, show=True, repeat=True):
     '''
     @param data: (n, 3) ndarray
     @param lim: [[xl, xh], [yl, yh], [zl, zh]]
@@ -143,7 +143,7 @@ def plot3DAnimated(data, lim=[[-1, 1], [-1, 1], [-1, 1]], label=None, interval=1
         ln.set_3d_properties(data[:frame, 2])
         return ln,
 
-    ani = FuncAnimation(fig,
+    FuncAnimation(fig,
                         update,
                         frames=range(1,
                                      np.shape(data)[0] + 1),
@@ -553,7 +553,7 @@ class IMUTracker:
         return positions
 
 
-def receive_data(mode='tcp'):
+def receive_data(mode='file'):
     data = []
 
     if mode == 'tcp':
@@ -567,10 +567,13 @@ def receive_data(mode='tcp'):
         return data
 
     if mode == 'file':
-        file = open('data.txt', 'r')
+        file = open('data10.csv', 'r')
         for line in file.readlines():
             data.append(line.split(','))
         data = np.array(data, dtype=np.float)
+
+
+
         return data
 
     else:
@@ -579,7 +582,7 @@ def receive_data(mode='tcp'):
 
 def plot_trajectory():
     tracker = IMUTracker(sampling=100)
-    data = receive_data('tcp')    # toggle data source between 'tcp' and 'file' here
+    data = receive_data('file')    # toggle data source between 'tcp' and 'file' here
 
     print('initializing...')
     init_list = tracker.initialize(data[5:30])
@@ -603,16 +606,17 @@ def plot_trajectory():
     plot3D([[p, 'position']])
     
     # make 3D animation
-    # xl = np.min(p[:, 0]) - 0.05
-    # xh = np.max(p[:, 0]) + 0.05
-    # yl = np.min(p[:, 1]) - 0.05
-    # yh = np.max(p[:, 1]) + 0.05
-    # zl = np.min(p[:, 2]) - 0.05
-    # zh = np.max(p[:, 2]) + 0.05
-    # plot3DAnimated(p, lim=[[xl, xh], [yl, yh], [zl, zh]], label='position', interval=5)
+    xl = np.min(p[:, 0]) - 0.05
+    xh = np.max(p[:, 0]) + 0.05
+    yl = np.min(p[:, 1]) - 0.05
+    yh = np.max(p[:, 1]) + 0.05
+    zl = np.min(p[:, 2]) - 0.05
+    zh = np.max(p[:, 2]) + 0.05
+    plot3DAnimated(p, lim=[[xl, xh], [yl, yh], [zl, zh]], label='position', interval=100)
 
 
 if __name__ == '__main__':
+
     plot_trajectory()
     # data = receive_data('tcp')
     
