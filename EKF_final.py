@@ -143,14 +143,8 @@ def plot3DAnimated(data, lim=[[-1, 1], [-1, 1], [-1, 1]], label=None, interval=1
         ln.set_3d_properties(data[:frame, 2])
         return ln,
 
-    FuncAnimation(fig,
-                        update,
-                        frames=range(1,
-                                     np.shape(data)[0] + 1),
-                        init_func=init,
-                        blit=True,
-                        interval=interval,
-                        repeat=repeat)
+    FuncAnimation(fig, update, frames=range(1, np.shape(data)[1] + 1),
+            init_func=init, blit=True, interval=interval, repeat=repeat)
     if show:
         plt.show()
 
@@ -567,7 +561,7 @@ def receive_data(mode='file'):
         return data
 
     if mode == 'file':
-        file = open('data10.csv', 'r')
+        file = open('data8.csv', 'r')
         for line in file.readlines():
             data.append(line.split(','))
         data = np.array(data, dtype=np.float)
@@ -581,7 +575,7 @@ def receive_data(mode='file'):
 
 
 def plot_trajectory():
-    tracker = IMUTracker(sampling=100)
+    tracker = IMUTracker(sampling=11)
     data = receive_data('file')    # toggle data source between 'tcp' and 'file' here
 
     print('initializing...')
@@ -606,13 +600,13 @@ def plot_trajectory():
     plot3D([[p, 'position']])
     
     # make 3D animation
-    xl = np.min(p[:, 0]) - 0.05
-    xh = np.max(p[:, 0]) + 0.05
-    yl = np.min(p[:, 1]) - 0.05
-    yh = np.max(p[:, 1]) + 0.05
-    zl = np.min(p[:, 2]) - 0.05
-    zh = np.max(p[:, 2]) + 0.05
-    plot3DAnimated(p, lim=[[xl, xh], [yl, yh], [zl, zh]], label='position', interval=100)
+    # xl = np.min(p[:, 0]) - 0.05
+    # xh = np.max(p[:, 0]) + 0.05
+    # yl = np.min(p[:, 1]) - 0.05
+    # yh = np.max(p[:, 1]) + 0.05
+    # zl = np.min(p[:, 2]) - 0.05
+    # zh = np.max(p[:, 2]) + 0.05
+    # plot3DAnimated(p, lim=[[xl, xh], [yl, yh], [zl, zh]], label='position', interval=10)
 
 
 if __name__ == '__main__':
